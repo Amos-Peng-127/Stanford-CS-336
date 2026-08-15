@@ -13,21 +13,33 @@ class SwiGLU(nn.Module):
         super().__init__()
 
         self.d_ff = d_ff
-
-        self.W1 = nn.init.zeros_(
+        std = (2 / (d_model + d_ff)) ** 0.5
+        self.W1 = nn.init.trunc_normal_(
             nn.Parameter(
-                torch.empty((d_ff, d_model))
-            )
+                torch.empty((d_ff, d_model), dtype = dtype, device = device)
+            ),
+            mean = 0,
+            std = std,
+            a = -3 * std, 
+            b = 3 * std
         )
-        self.W2 = nn.init.zeros_(
+        self.W2 = nn.init.trunc_normal_(
             nn.Parameter(
-                torch.empty((d_model, d_ff))
-            )
+                torch.empty((d_model, d_ff), dtype = dtype, device = device)
+            ),
+            mean = 0,
+            std = std,
+            a = -3 * std, 
+            b = 3 * std
         )
-        self.W3 = nn.init.zeros_(
+        self.W3 = nn.init.trunc_normal_(
             nn.Parameter(
-                torch.empty((d_ff, d_model))
-            )
+                torch.empty((d_ff, d_model), dtype = dtype, device = device)
+            ),
+            mean = 0,
+            std = std,
+            a = -3 * std, 
+            b = 3 * std
         )
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:

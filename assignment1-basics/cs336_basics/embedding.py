@@ -16,7 +16,7 @@ class Embedding(nn.Module):
         self.weight = nn.Parameter(
             nn.init.trunc_normal_(
                 torch.empty(
-                    vocab_size, d_model,
+                    (vocab_size, d_model),
                     device = device, dtype = dtype
                 ),
                 # mean, std, lower bound, upper bound
