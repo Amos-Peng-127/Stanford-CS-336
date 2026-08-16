@@ -53,6 +53,7 @@ class RoPE(nn.Module):
         )
 
     def forward(self, x: torch.Tensor, token_positions: torch.Tensor) -> torch.Tensor:
+        # x is in_query_or_key
         # Rotation Matrix for Token Positions
         # Shape (seq_len, pair, row, col) Not max_seq_len
         r_ik = self.R_ik[token_positions]
