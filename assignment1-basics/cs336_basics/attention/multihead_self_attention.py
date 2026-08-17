@@ -1,16 +1,13 @@
 import torch
 import torch.nn as nn
 from einops import rearrange, einsum
-from cs336_basics.scaled_dot_product_attention import scaled_dot_product_attention
-from cs336_basics.rope import RoPE
+from cs336_basics.attention.scaled_dot_product_attention import scaled_dot_product_attention
 
-class MultiHeadSelfAttentionRoPE(nn.Module):
+class MultiHeadSelfAttention(nn.Module):
     def __init__(
         self,
         d_model: int,
         num_heads: int,
-        max_seq_len: int,
-        theta: float,
         device: torch.device | None = None,
         dtype: torch.dtype | None = None
     ):
@@ -19,9 +16,6 @@ class MultiHeadSelfAttentionRoPE(nn.Module):
         self.d_model = d_model
         self.num_heads = num_heads
         self.d_k = d_model // num_heads
-
-        self.max_seq_len = max_seq_len
-        self.theta = theta
 
         std = (2 / (d_model + d_model)) ** 0.5
 
@@ -65,9 +59,7 @@ class MultiHeadSelfAttentionRoPE(nn.Module):
             b = 3 * std
         )
 
-        self.RoPE = RoPE(self.d_k, theta, max_seq_len)
-
-    def forward(self, x: torch.Tensor, token_positions: torch.Tensor | None = None):
+    def forward(self, x: torch.Tensor):
 
         seq_len = x.shape[-2]
 
@@ -88,20 +80,16 @@ class MultiHeadSelfAttentionRoPE(nn.Module):
             Q,
             "... seq_len (head d_k) -> ... head seq_len d_k", head = self.num_heads
         )
-        
-        Q_RoPE = self.RoPE(Q_multi, token_positions)
 
         K = einsum(
             x, self.k_proj_weight,
             "... d_in, d_out d_in -> ... d_out"
         )
-
+        
         K_multi = rearrange(
             K,
             "... seq_len (head d_k) -> ... head seq_len d_k", head = self.num_heads
         )
-
-        K_RoPE = self.RoPE(K_multi, token_positions)
 
         V = einsum(
             x, self.v_proj_weight,
@@ -114,7 +102,7 @@ class MultiHeadSelfAttentionRoPE(nn.Module):
         )
 
         # Shape (..., head, seq_len, d_k)
-        out = scaled_dot_product_attention(Q_RoPE, K_RoPE, V_multi, mask)
+        out = scaled_dot_product_attention(Q_multi, K_multi, V_multi, mask)
 
         out = rearrange(
             out,

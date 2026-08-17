@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from einops import einsum, rearrange
-from cs336_basics.softmax import softmax
+from cs336_basics.attention.softmax import softmax
 
 def scaled_dot_product_attention(
     Q: torch.Tensor, # (n, d_k)

@@ -28,7 +28,7 @@ def run_linear(
     Returns:
         Float[Tensor, "... d_out"]: The transformed output of your linear module.
     """
-    from cs336_basics.linear import Linear
+    from cs336_basics.layers.linear import Linear
     # Create Linear Class
     linear = Linear(d_in, d_out)
 
@@ -60,7 +60,7 @@ def run_embedding(
     Returns:
         Float[Tensor, "... d_model"]: Batch of embeddings returned by your Embedding layer.
     """
-    from cs336_basics.embedding import Embedding
+    from cs336_basics.layers.embedding import Embedding
     # Create Embedding Class
     emb = Embedding(vocab_size, d_model)
 
@@ -103,7 +103,7 @@ def run_swiglu(
     # swiglu.w1.weight.data = w1_weight
     # swiglu.w2.weight.data = w2_weight
     # swiglu.w3.weight.data = w3_weight
-    from cs336_basics.swiglu import SwiGLU
+    from cs336_basics.attention.swiglu import SwiGLU
     # Create SwiGLU Class
     swiglu = SwiGLU(d_model, d_ff)
 
@@ -139,7 +139,7 @@ def run_scaled_dot_product_attention(
     Returns:
         Float[Tensor, " ... queries d_v"]: Output of SDPA
     """
-    from cs336_basics.scaled_dot_product_attention import scaled_dot_product_attention
+    from cs336_basics.attention.scaled_dot_product_attention import scaled_dot_product_attention
 
     return scaled_dot_product_attention(
         Q, K, V, mask
@@ -179,7 +179,7 @@ def run_multihead_self_attention(
         Float[Tensor, " ... sequence_length d_model"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    from cs336_basics.multihead_self_attention import MultiHeadSelfAttention
+    from cs336_basics.attention.multihead_self_attention import MultiHeadSelfAttention
 
     # Init MultiHead Self Attention Layer
     mh_atten = MultiHeadSelfAttention(d_model, num_heads)
@@ -238,7 +238,7 @@ def run_multihead_self_attention_with_rope(
         Float[Tensor, " ... sequence_length d_model"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    from cs336_basics.multihead_self_attention_with_rope import MultiHeadSelfAttentionRoPE
+    from cs336_basics.attention.multihead_self_attention_with_rope import MultiHeadSelfAttentionRoPE
 
     # Init MultiHead Self Attention Layer
     mh_atten_rope = MultiHeadSelfAttentionRoPE(d_model, num_heads, max_seq_len, theta)
@@ -279,7 +279,7 @@ def run_rope(
     Returns:
         Float[Tensor, " ... sequence_length d_k"]: Tensor with RoPEd input.
     """
-    from cs336_basics.rope import RoPE
+    from cs336_basics.attention.rope import RoPE
     # Init RoPE
     rope = RoPE(d_k, theta, max_seq_len)
 
@@ -361,7 +361,34 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
+    from cs336_basics.transformer.transformer_block import TransformerBlock
+
+    # Init
+    transoformer_block = TransformerBlock(
+        d_model, num_heads, d_ff, max_seq_len, theta
+    )
+
+    # Create New Weight to Map Block Weight
+    weights_mapped = {
+        "attn.q_proj_weight": weights["attn.q_proj.weight"],
+        "attn.k_proj_weight": weights["attn.k_proj.weight"],
+        "attn.v_proj_weight": weights["attn.v_proj.weight"],
+        "attn.o_proj_weight": weights["attn.output_proj.weight"],
+        "ffn.W1": weights["ffn.w1.weight"],
+        "ffn.W2": weights["ffn.w2.weight"],
+        "ffn.W3": weights["ffn.w3.weight"],
+        "ln1.weight": weights["ln1.weight"],
+        "ln2.weight": weights["ln2.weight"],
+    }
+
+    # Load State Dict
+    transoformer_block.load_state_dict(weights_mapped)
+
+    # Forward
+    out = transoformer_block(in_features)
+    return out
+
+    # raise NotImplementedError
 
 
 def run_transformer_lm(
@@ -443,7 +470,48 @@ def run_transformer_lm(
         Float[Tensor, "batch_size sequence_length vocab_size"]: Tensor with the predicted unnormalized
         next-word distribution for each token.
     """
-    raise NotImplementedError
+    from cs336_basics.transformer.transformer_lm import TransformerLM
+
+    # Init
+    transform_lm = TransformerLM(
+        vocab_size, context_length,d_model, num_layers, num_heads, d_ff, rope_theta
+    )
+    
+    # Map the Weights
+    weights_mapped = {
+        "embedding.weight": weights["token_embeddings.weight"],
+        "rmsnorm.weight": weights["ln_final.weight"],
+        "linear.weight": weights["lm_head.weight"],
+    }
+
+    for i in range(num_layers):
+        weights_mapped[f"layers.{i}.attn.q_proj_weight"] = \
+            weights[f"layers.{i}.attn.q_proj.weight"]
+        weights_mapped[f"layers.{i}.attn.k_proj_weight"] = \
+            weights[f"layers.{i}.attn.k_proj.weight"]
+        weights_mapped[f"layers.{i}.attn.v_proj_weight"] = \
+            weights[f"layers.{i}.attn.v_proj.weight"]
+        weights_mapped[f"layers.{i}.attn.o_proj_weight"] = \
+            weights[f"layers.{i}.attn.output_proj.weight"]
+        weights_mapped[f"layers.{i}.ffn.W1"] = \
+            weights[f"layers.{i}.ffn.w1.weight"]
+        weights_mapped[f"layers.{i}.ffn.W2"] = \
+            weights[f"layers.{i}.ffn.w2.weight"]
+        weights_mapped[f"layers.{i}.ffn.W3"] = \
+            weights[f"layers.{i}.ffn.w3.weight"]
+        weights_mapped[f"layers.{i}.ln1.weight"] = \
+            weights[f"layers.{i}.ln1.weight"]
+        weights_mapped[f"layers.{i}.ln2.weight"] = \
+            weights[f"layers.{i}.ln2.weight"]
+                    
+    # Load State Dict
+    transform_lm.load_state_dict(weights_mapped)
+
+    # Forward
+    out = transform_lm(in_indices)
+    return out
+
+    # raise NotImplementedError
 
 
 def run_rmsnorm(
@@ -530,7 +598,7 @@ def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, "
         Float[Tensor, "..."]: Tensor of with the same shape as `in_features` with the output of
         softmax normalizing the specified `dim`.
     """
-    from cs336_basics.softmax import softmax
+    from cs336_basics.attention.softmax import softmax
     
     return softmax(in_features, dim)
 
