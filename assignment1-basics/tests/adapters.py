@@ -534,7 +534,7 @@ def run_rmsnorm(
         Float[Tensor,"... d_model"]: Tensor of with the same shape as `in_features` with the output of running
         RMSNorm of the `in_features`.
     """
-    from cs336_basics.rmsnorm import RMSNorm
+    from cs336_basics.attention.rmsnorm import RMSNorm
     # Create RMSNorm Class
     rms_norm = RMSNorm(d_model, eps)
 
@@ -559,7 +559,13 @@ def run_silu(in_features: Float[Tensor, " ..."]) -> Float[Tensor, " ..."]:
         Float[Tensor,"..."]: of with the same shape as `in_features` with the output of applying
         SiLU to each element.
     """
-    raise NotImplementedError
+    from cs336_basics.attention.silu import SiLU
+    
+    silu = SiLU()
+
+    return silu(in_features)
+
+    # raise NotImplementedError
 
 
 def run_get_batch(
@@ -582,7 +588,7 @@ def run_get_batch(
         is the sampled input sequences, and the second tuple item is the corresponding
         language modeling labels.
     """
-    from cs336_basics.training_loop.run_get_batch import get_batch
+    from cs336_basics.training_loop.get_batch import get_batch
 
     return get_batch(
         dataset, batch_size, context_length, device
@@ -714,7 +720,7 @@ def run_save_checkpoint(
         out (str | os.PathLike | BinaryIO | IO[bytes]): Path or file-like object to serialize the model, optimizer, and iteration to.
     """
     from cs336_basics.training_loop.checking import save_checkpoint
-    
+
     save_checkpoint(model, optimizer, iteration, out)
 
     # raise NotImplementedError

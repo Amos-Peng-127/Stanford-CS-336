@@ -3,7 +3,7 @@ from collections.abc import Iterable
 
 def clip_grad_norm_(
     parameters: Iterable[torch.nn.Parameter],
-    max_l2_norm: float
+    max_l2_norm: float = 1.0
 ):  
     if max_l2_norm <= 0:
         raise ValueError("Max_L2_Norm should be positive")
